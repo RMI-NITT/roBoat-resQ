@@ -1,10 +1,9 @@
 /*
-* 1 ---->  m1 right motor ----> e - 8, 22,23
- * 2 ----> m2 back motor ----> 9, 24, 25
- * 3 ----> m3 left motor  ----> 10, 26, 27
- * 4 ----> m4 front motor ----> 11, 28, 29
- *
- */
+* 1 ---->  right motor ----> e - 8, 22,23
+* 2 ---->  back motor ----> 9, 24, 25
+* 3 ---->  left motor  ----> 10, 26, 27
+* 4 ---->  front motor ----> 11, 28, 29
+*/
 #include <ultdist.h>
 #include <DCMotor.h>
 
@@ -45,21 +44,26 @@ void omnicontrol(int theta)
   fspeed = map(vf,0,100,vfmin,255);
   else
   fspeed = map(vf,-100,0,-255,-vfmin);
-
   m1.mspeed(rspeed);
   m2.mspeed(bspeed);
   m3.mspeed(lspeed);
   m4.mspeed(fspeed);
-  Serial.print(rspeed);
+  /*Serial.print(rspeed);
   Serial.print(' ');
   Serial.print(bspeed);
   Serial.print(' ');
   Serial.print(lspeed);
   Serial.print(' ');
-  Serial.println(fspeed);
-
+  Serial.println(fspeed);*/
 }
-
+void read_head()
+{
+  if (Serial1.available()) 
+  {
+    head = Serial1.read();
+    head = head*1.40625;
+  }
+}
 void setup()
 {
   Serial.begin(9600);
@@ -67,14 +71,19 @@ void setup()
   m2.minit();
   m3.minit();
   m4.minit();
+  pinMode(2,INPUT);
 }
 
 void loop()
 {
   theta++;
   omnicontrol(theta);
+  heading=read_head();
   delay(50);
   if(theta==359){
     theta=0;
+  }
+  if(digitalRead(2)!=1){
+    //Serial.println("HELP");
   }
 }
