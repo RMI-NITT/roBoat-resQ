@@ -13,7 +13,7 @@ dcm m3(10,26,27);
 dcm m4(11,28,29);
 
 int vrmin=0, vbmin=0, vlmin=0, vfmin=0; // calibrate and update
-int vr=0, vb=0, vl=0, vf=0;
+int vr=0, vb=0, vl=0, vf=0,rotf=0, error,kp,vmin=100;
 int m1s,m2s,m3s,m4s;
 int r1,r2,b1,b2,l1,l2,f1,f2;
 /*ultdist u3(33,32);
@@ -22,7 +22,7 @@ ultdist u1(37,36);
 ultdist u0(39,38);
 int d1,d2,d3,d4,i=0;*/
 
-int head,bearing=35,j,i,g,sm,face;
+int head,bearing=185,j,i,g,sm,face;
 int h1[4],h2[4];
 int theta = 0; // for now; have to change later
 void read_head()
@@ -87,48 +87,62 @@ void checkbearing()
   else v=q+1;
   if(q==g)
   {
-    if((bearing<90))
+    if((bearing<=90))
     {
       if((360-h2[q]+bearing)<45){
         //clockwise
         face=q;
-        
-        //Serial.print("A");
+        rotf=-1;
+        error=abs(360-h2[q]+bearing);
+        Serial.print("A");
       }
       else{
         //anti
         face = v;
+        rotf=1;
+        error=abs(90-(360-h2[q]+bearing));
         //Serial.print("B");
       }
     }
+    else if(bearing>=270){
     if((bearing - h2[q])<45){
       //clock
+      rotf=-1;
       face=q;
+      error=abs(bearing - h2[q]);
       //Serial.print("C");
     }
     
     else{
       //anti
+      error=abs(90+bearing-h2[v]);
+      rotf=1;
       face = v;
       //Serial.print("D");
     }
+    }
   }
   else {
-    if(bearing>(h2[q]+45))
+    if(bearing>(h2[q]+45) && bearing<h2[v])
     {
       face = v;
+      rotf=1;
+      error=abs(h2[v]-bearing);
       //Serial.print("E");
       //anticlock;
     }
-    else
+    else if(bearing>h2[q] && bearing<h2[v]-45)
     {
       face = q;
+      rotf=-1;;
+      error=abs(h2[q]-bearing);
       //Serial.print("F");
       //clock;
     }
   }
+  /*Serial.print("    ");
   Serial.print(q);
-  Serial.print(v);
+  Serial.print(v);*/
 }
 void straight()
 {
@@ -165,58 +179,23 @@ void straight()
     
   }
 }
-void head_control(int a)
-{
-  int e,kp=10,f;
-  if(abs(a-h2[face])>4)
-  {
-    if(abs(a-h2[face])<(360-abs(a-h2[face])))
-    {
-      f = (a-h2[face])/abs(a-h2[face]);
-      e = abs(a-h2[face]);
-      lspeed = (100+(e*kp))*(f);
-      rspeed = (100+(e*kp))*(-f);
-    }
-    else
-    {
-      f = (h2[face]-a)/abs(a-h2[face]);
-      e = 360 - abs(a-h2[face]);
-      lspeed = (100+(e*kp))*(f);
-      rspeed = (100+(e*kp))*(-f);
-    }
-    if(lspeed>255) lspeed = 255;
-    if(rspeed>255) rspeed = 255;
-    if(lspeed<-255) lspeed = -255;
-    if(rspeed<-255) rspeed = -255;
-    ml.mspeed(lspeed);
-    mr.mspeed(rspeed);
-    //Serial.println(head);
-  }
-  else
-  {
-    ml.mspeed(200);
-    mr.mspeed(200);
-  }
-}
+
 void controlhead()
 { 
-  int e;
+  kp=((250-vmin)/45);
   if(abs(bearing-h2[face])>4)
   {
-    if(bearing>h2[face])
-      {
-       e=bearing-h2[face]; 
-      
-      //anticlock
-      }
-    else 
-    {
-      e=h2[face]-bearing;
-      
-      //clock
-    }
+    m1.mspeed(rotf*error*kp);
+    m2.mspeed(rotf*error*kp);
+    m3.mspeed(rotf*error*kp);
+    m3.mspeed(rotf*error*kp);
   }
+  else 
+    {
+      straight();
+    }
 }
+
 void setup()
 {
   Serial.begin(9600);
@@ -248,16 +227,21 @@ void loop()
   
   read_head(); 
   checkbearing();
+  controlhead();
 
-Serial.print(face);
+/*Serial.print(face);
   Serial.print("          ");
-  Serial.print(h2[0]);
+  Serial.print(error);
+  Serial.print("          ");
+  Serial.print(rotf);
+  Serial.println("          ");*/
+  /*Serial.print(h2[0]);
   Serial.print(" ");
   Serial.print(h2[1]);
   Serial.print(" ");
   Serial.print(h2[2]);
   Serial.print(" ");
-  Serial.println(h2[3]);
+  Serial.println(h2[3]);*/
   /*read_head(); 
   pidrot(0);
   Serial.println(head1);*/
